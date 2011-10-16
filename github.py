@@ -5,7 +5,7 @@
 # TODO: NEED TO FIND A WAY TO ACCESS GITHUB VIA API TOKEN WITHOUT PASSWORD
 # TODO: NEED TO ALLOW FOR COMMENTS IMPORT TOO
 
-import os
+import os,sys
 import base64
 from httplib import HTTPSConnection
 from json import JSONDecoder, JSONEncoder
@@ -54,9 +54,8 @@ class GithubRequest(object):
 
 def get_milestones(project):
     x = GithubRequest()
-    data = x.request('GET','/repos/%s/%s/milestones' % (GITHUBLOGIN,project))
-    return [x['title'] for x in data]
-
+    data = x.request('GET','/repos/%s/%s/milestones' % (GITHUBLOGIN, project))
+    return [(x['number'], x['title']) for x in data]
 
 def create_milestone(project, ms_title, ms_desc = None, ms_dueon = None, ms_state = None):
     x = GithubRequest()
@@ -72,9 +71,59 @@ def create_milestone(project, ms_title, ms_desc = None, ms_dueon = None, ms_stat
     if ms_dueon != None:
         milestone['due_on'] = ms_dueon
         
-    data = x.request('POST','/repos/%s/%s/milestones' % (GITHUBLOGIN,project), milestone)
+    data = x.request('POST','/repos/%s/%s/milestones' % (GITHUBLOGIN, project), milestone)
     
-    if data['title'] == ms_title:
-        return True
+    if data['title'] and data['title'] == ms_title:
+        return data['number']
+        
     return False
 
+def get_labels(project):
+    x = GithubRequest()
+    data = x.request('GET','/repos/%s/%s/labels' % (GITHUBLOGIN, project))
+    return [x['name'] for x in data]
+
+def create_label(project, lab_name, lab_color = '0000DD'):
+    x = GithubRequest()
+    label = {}
+    label['name'] = lab_name
+    label['color'] = lab_color
+    data = x.request('POST','/repos/%s/%s/labels' % (GITHUBLOGIN, project), label)
+    if data['name'] and data['name'] == lab_name:
+        return True
+    
+    return False
+
+def create_issue(project, iss_title, iss_body = None, iss_assignee = None, iss_milestone = None, iss_labels = None):
+    x = GithubRequest()
+    issue = {}
+    issue['title'] = iss_title
+    
+    if iss_body != None:
+        issue['description'] = iss_body
+    
+    if iss_assignee != None:
+        issue['assignee'] = iss_assignee
+    
+    if iss_milestone != None and type(iss_milestone) == type(1):
+        issue['milestone'] = iss_milestone
+    
+    if iss_labels != None and type(iss_labels) == type([]):
+        issue['labels'] = iss_labels
+    
+    data = x.request('POST','/repos/%s/%s/issues' % (GITHUBLOGIN, project), issue)
+    print data
+    if data['title'] and data['title'] == iss_title:
+        return data['number']
+        
+    return False
+ 
+def close_issue(project, iss_id):
+    x = GithubRequest()
+    issue = {}
+    issue['state'] = 'closed'
+    data = x.request('PATCH','/repos/%s/%s/issues/%d' % (GITHUBLOGIN, project, iss_id), issue)
+    if data['title'] and data['state'] == 'closed':
+        return True
+    
+    return False
