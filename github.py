@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-#TODO NEED TO FIND A WAY TO ACCESS GITHUB VIA API TOKEN WITHOUT PASSWORD
+# Package: Tragit
+# Author: Abhishek Shrivastava <i.abhi27[at]gmail[dot]com>.
+# License: BSD License
+# TODO: NEED TO FIND A WAY TO ACCESS GITHUB VIA API TOKEN WITHOUT PASSWORD
+# TODO: NEED TO ALLOW FOR COMMENTS IMPORT TOO
+
 import os
 import base64
 from httplib import HTTPSConnection
@@ -18,7 +23,6 @@ class GithubRequest(object):
     def __init__(self):
         self._create_connection()
         self._create_auth_header()
-
         self._decoder = JSONDecoder()
         self._encoder = JSONEncoder()
 
@@ -73,3 +77,4 @@ def create_milestone(project, ms_title, ms_desc = None, ms_dueon = None, ms_stat
     if data['title'] == ms_title:
         return True
     return False
+
