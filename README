@@ -1,0 +1,18 @@
+Tragit is a python tool to move tickets from TRAC to Github Issues conveniently.
+It uses the Github API v3 and hence supports extra features which are not available in v2 API.
+For e.g., an assigned ticket in TRAC is reassigned to the corresponding Github username automatically. This wasn't possible in API v2.
+
+The best part is, it only needs the TRAC-generated CSV file and doesn't need access to the database. So its possible to move tickets from Sourceforge TRAC to Github. 
+
+The CSV file can be generated via the link 'comma-separated text' which is present in the bottom of every report of TRAC.
+For best results, please generate the CSV file using a custom report with the following TRAC query :
+
+SELECT
+id AS ticket, component, summary, t.priority AS priority, resolution, severity, t.type AS type, 
+status, owner, reporter,cc,version, milestone, time AS created, description AS _description, keywords
+FROM ticket t
+LEFT JOIN enum p ON p.name = t.priority AND p.type = 'priority'
+ORDER BY id DESC, CAST(p.value AS signed), milestone, t.type, time
+
+
+NOTE : This is still under development and I'm actively working on it. It should be done in a few days.
