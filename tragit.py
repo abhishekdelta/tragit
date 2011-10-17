@@ -19,12 +19,13 @@ class Tragit:
         self._config_sanity_check()
         self._username = self._config.get('github','username')
         self._password = self._config.get('github','password')
-        self._defaultcolor = self._config.get('github','defaultcolor')
+        self._defaultcolor = self._config.get('github','defaultcolor').lstrip('#')
         self._conf_map = {}
         for conf_item in dict(self._config.items('issue')).keys():
             self._conf_map[conf_item] = self._config.get('issue',conf_item)
             
         self._github = github.Github(self._username, self._password, self._project)
+        
         print "Github API successfully loaded!"  
             
     def _config_sanity_check(self):
@@ -54,7 +55,7 @@ class Tragit:
                     print 'Tragit will simply leave it blank in all issues. Continue ?'
                     go = sys.stdin.readline().strip().lower()
                     if go[0:1] != 'y':
-                        sys.exit('Add some Trac column equivalent to it ' + item + ' and try again.")
+                        sys.exit('Add some Trac column equivalent to it ' + item + ' and try again.')
                     
             if githubitems[item] == "":
                 if item != 'labels':
@@ -81,8 +82,9 @@ class Tragit:
     def transfer(self):
         csvfile = open(self._traccsv,'rb')
         csvreader = csv.DictReader(csvfile)
-
+        counter = 0
         for row in csvreader:
+            counter += 1
             for key in row.keys():
                 row[key] = row[key].decode('utf-8')
             
@@ -91,17 +93,18 @@ class Tragit:
                     continue
                 if self._conf_map[field] not in row.keys():
                     row[field] = None
-                         
+                    
             self._process_ticket(row)
-
+        
+        print "Done! Transferred "+str(counter)+" trac tickets to Github issues."
 
     def _process_labels(self, ticket):
         conf_labels_cat = self._config.get('issue','labels')
         if not conf_labels_cat:
             return None
-        
+
         conf_sections = self._config.sections()    
-        conf_labels_cat = map(lambda x: x.strip(), conf_labels_cat)
+        conf_labels_cat = map(lambda x: x.strip(), conf_labels_cat.split(','))
         ticket_labels = []
         for cat in conf_labels_cat:
             if cat in ticket.keys():
@@ -109,7 +112,7 @@ class Tragit:
                 ticket_labels.append(label)
                 if label not in self._github.get_labels():
                     if cat in conf_sections and label in dict(self._config.items(cat)).keys():
-                        color = self._config.get(cat,label)
+                        color = self._config.get(cat,label).lstrip('#')
                     else:
                         color = self._defaultcolor
                     
@@ -117,7 +120,7 @@ class Tragit:
                     if resp == False:
                         sys.exit(label+" label cannot be created because something went wrong with Github API.")
          
-         return ticket_labels
+        return ticket_labels
 
     def _process_milestone(self, ticket):
         if not ticket[self._conf_map['milestone']]:
@@ -130,7 +133,7 @@ class Tragit:
             if m_id == False:
                 sys.exit(milestone+" milestone cannot be created because something went wrong with Github API.")
             
-            return mid
+            return m_id
         
         return milestonesmap[milestone]
     
@@ -148,9 +151,10 @@ class Tragit:
             if resp == False:
                 sys.exit(issue_id+" number issue cannot be closed because something went wrong with Github API.")
         
+        print "Created Github Issue #"+str(issue_id)+" from Trac Ticket "+ticket[self._conf_map['title']]        
         
 if __name__ == "__main__":
     tragit = Tragit("/home/jereme/Desktop/testcsv.csv","killme")
-#    tragit.transfer()
+    tragit.transfer()
 
 
