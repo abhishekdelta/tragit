@@ -49,23 +49,29 @@ class Tragit:
         for item in ['title','body','assignee','state','milestone','labels']:
             if item not in githubitems.keys():
                 if item == 'title':
-                    sys.exit(item +' is missing from issue2trac section.')
+                    sys.exit(item +' is missing from issue section.')
                 else:
                     print 'No Trac equivalent to ' + item + ' specified.'
                     print 'Tragit will simply leave it blank in all issues. Continue ?'
                     go = sys.stdin.readline().strip().lower()
                     if go[0:1] != 'y':
-                        sys.exit('Add some Trac column equivalent to it ' + item + ' and try again.')
+                        sys.exit('Add some Trac column equivalent to ' + item + ' and try again.')
                     
             if githubitems[item] == "":
-                if item != 'labels':
+                if item == 'title':
                     sys.exit(item + ' has an empty value.')
-                else:
+                elif item == 'labels':
                     print 'No labels specified.'
                     print 'Tragit will simply ticket ignore priorities, severities, components and types if they exist. Continue ?'
                     go = sys.stdin.readline().strip().lower()
                     if go[0:1] != 'y':
                         sys.exit("Add some labels and try again.")
+                else:
+                    print 'The Trac equivalent to ' + item + ' has no values.'
+                    print 'Tragit will simply leave it blank in all issues. Continue ?'
+                    go = sys.stdin.readline().strip().lower()
+                    if go[0:1] != 'y':
+                        sys.exit('Add some Trac column equivalent to ' + item + ' and try again.')
       
         if githubitems['labels'] != '':
             labels = githubitems['labels'].split(',')
