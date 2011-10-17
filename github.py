@@ -28,8 +28,16 @@ class Github(object):
         if not self.milestones:
             x = GithubRequest(self._username, self._password)
             data = x.request('GET','/repos/%s/%s/milestones?state=open' % (self._username, self._project))
-            self.milestones = dict([(y['title'], y['number']) for y in data])
+            if 'message' in data:
+                self._error(data)
+                return False
+                
+            self.milestones = dict([(y['title'], y['number']) for y in data])         
             data = x.request('GET','/repos/%s/%s/milestones?state=closed' % (self._username, self._project))
+            if 'message' in data:
+                self._error(data)
+                return False
+                            
             self.milestones.update(dict([(y['title'], y['number']) for y in data]))
 
         return self.milestones
@@ -60,6 +68,10 @@ class Github(object):
         if not self.labels:
             x = GithubRequest(self._username, self._password)
             data = x.request('GET','/repos/%s/%s/labels' % (self._username, self._project))
+            if 'message' in data:
+                self._error(data)
+                return False
+                            
             self.labels = [x['name'] for x in data]
             
         return self.labels

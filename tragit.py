@@ -116,7 +116,11 @@ class Tragit:
             if cat in ticket.keys():
                 label = ticket[cat]
                 ticket_labels.append(label)
-                if label not in self._github.get_labels():
+                labels = self._github.get_labels()
+                if labels == False:
+                    sys.exit("Cannot fetch existing labels because something went wrong with Github API.")
+                    
+                if label not in labels:
                     if cat in conf_sections and label in dict(self._config.items(cat)).keys():
                         color = self._config.get(cat,label).lstrip('#')
                     else:
@@ -134,6 +138,9 @@ class Tragit:
         
         milestone = ticket[self._conf_map['milestone']]
         milestonesmap = self._github.get_milestones()
+        if milestonesmap == False:
+            sys.exit("Cannot fetch existing milestones because something went wrong with Github API.")
+            
         if milestone not in milestonesmap.keys():
             m_id = self._github.create_milestone(milestone)
             if m_id == False:

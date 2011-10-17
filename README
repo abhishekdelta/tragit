@@ -14,4 +14,4 @@ FROM ticket t
 LEFT JOIN enum p ON p.name = t.priority AND p.type = 'priority'
 ORDER BY id DESC, CAST(p.value AS signed), milestone, t.type, time
 
-But you can have your own custom queries, just in that case you'll have to modify tragit.conf [issue] section which is basically a map from Github Issue attribute to its equivalent Trac parameter. The Trac parameter (on the right side of the assignment operator) must be present in the field of your SELECT query. If its not there, then better keep that parameter blank (don't delete the line!) in the configuration file.
+But you can have your own custom queries, just in that case you'll have to modify tragit.conf [issue] section which is basically a map from Github Issue attribute to its equivalent Trac parameter. The Trac parameter (on the right side of the assignment operator) must be present in the field of your SELECT query. If its not there, then better keep that parameter blank in the configuration file and Tragit will ignore it.
