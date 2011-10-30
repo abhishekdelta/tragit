@@ -2,7 +2,7 @@
 # Package: Tragit
 # Author: Abhishek Shrivastava <i.abhi27[at]gmail[dot]com>.
 # License: BSD License
-# TODO: Add optionsparser. Specify username password via options parser and auto create setup file.
+# TODO: Add optionsparser. Specify username password via options parser and auto create setup file. Override configs via optionsparser.
 
 import sys
 import github
@@ -20,11 +20,20 @@ class Tragit:
         self._username = self._config.get('github','username')
         self._password = self._config.get('github','password')
         self._defaultcolor = self._config.get('github','defaultcolor').lstrip('#')
+        self._project = self._config.get('github','project')
+        self._defaultassignee = self._config.get('github','defaultassignee')
+        self._projectinorg = self._config.get('github','projectinorg')
+        self._orgname = self._config.get('github','orgname')
+        if self._projectinorg == 'true':
+            self._projectsource = self._orgname
+        else:
+            self._projectsource = self._username
+            
         self._conf_map = {}
         for conf_item in dict(self._config.items('issue')).keys():
             self._conf_map[conf_item] = self._config.get('issue',conf_item)
             
-        self._github = github.Github(self._username, self._password, self._project)
+        self._github = github.Github(self._username, self._password, self._project, self._projectsource)
         
         print "Github API successfully loaded!"  
             
@@ -38,12 +47,27 @@ class Tragit:
                 sys.exit(section +" section undefined.")
             
         githubitems = dict(self._config.items('github'))
-        for item in ['username','password','defaultcolor']:
+        for item in ['username','password','defaultcolor','project','projectinorg']:
             if item not in githubitems.keys():
                 sys.exit(item +' is missing from github section.')                
                 
             if githubitems[item] == "":
                 sys.exit(item + ' has an empty value.')
+        
+        if 'defaultassignee' not in githubitems.keys() or githubitems['defaultassignee'] == "":
+            print 'No default assignee specified.'
+            print 'Tragit will assign tickets to you in Github, if the actual owner could not be found. Is it ok ?'
+            go = sys.stdin.readline().strip().lower()
+            if go[0:1] != 'y':
+                sys.exit('Give some username as the default assignee and try again.')
+            self._config.set('github','defaultassignee',self._config.get('github','username'))
+        
+        projectinorg = githubitems['projectinorg'].lower()
+        if projectinorg not in ['true','false']:
+            sys.exit('Invalid entry in projectinorg setting. Should be either true or false.')
+        
+        if projectinorg == 'true' and ('orgname' not in githubitems.keys() or githubitems['orgname'] == ""):
+            sys.exit('orgname setting is empty or undefined. Since projectinorg is true, a valid organization name must be specified.')
         
         githubitems = dict(self._config.items('issue'))
         for item in ['title','body','assignee','state','milestone','labels']:
@@ -167,7 +191,7 @@ class Tragit:
         print "Created Github Issue #"+str(issue_id)+" from Trac Ticket "+ticket[self._conf_map['title']]        
         
 if __name__ == "__main__":
-    tragit = Tragit("/home/jereme/Desktop/testcsv.csv","killme")
+    tragit = Tragit("/home/jereme/Desktop/testcsv.csv")
     tragit.transfer()
 
 

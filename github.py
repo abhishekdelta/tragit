@@ -16,24 +16,38 @@ GITHUBAPI = 'api.github.com'
 
 class Github(object):
 
-    def __init__(self, username, password, project):
+    def __init__(self, username, password, project, projectsource):
         self._username = username
         self._password = password
         self._project = project
+        self._projectsource = projectsource
         self.labels = []
         self.milestones = {}
+        self.collaborators = {}
         
+    
+    def get_collaborators(self):
+        if not self.collaborators:
+            x = GithubRequest(self._username, self._password)
+            data = x.request('GET','/repos/%s/%s/collaborators' % (self._projectsource, self._project))
+            if 'message' in data:
+                self._error(data)
+                return False
                 
+            self.collaborators = [y['login'] for y in data]         
+
+        return self.collaborators
+    
     def get_milestones(self):
         if not self.milestones:
             x = GithubRequest(self._username, self._password)
-            data = x.request('GET','/repos/%s/%s/milestones?state=open' % (self._username, self._project))
+            data = x.request('GET','/repos/%s/%s/milestones?state=open' % (self._projectsource, self._project))
             if 'message' in data:
                 self._error(data)
                 return False
                 
             self.milestones = dict([(y['title'], y['number']) for y in data])         
-            data = x.request('GET','/repos/%s/%s/milestones?state=closed' % (self._username, self._project))
+            data = x.request('GET','/repos/%s/%s/milestones?state=closed' % (self._projectsource, self._project))
             if 'message' in data:
                 self._error(data)
                 return False
@@ -56,7 +70,7 @@ class Github(object):
             milestone['due_on'] = ms_dueon
         
         print "Creating milestone : "+str(milestone)
-        data = x.request('POST','/repos/%s/%s/milestones' % (self._username, self._project), milestone)
+        data = x.request('POST','/repos/%s/%s/milestones' % (self._projectsource, self._project), milestone)
         if 'title' in data and data['title'] == ms_title:
             self.milestones[ms_title] = data['number']
             return data['number']
@@ -67,7 +81,7 @@ class Github(object):
     def get_labels(self):
         if not self.labels:
             x = GithubRequest(self._username, self._password)
-            data = x.request('GET','/repos/%s/%s/labels' % (self._username, self._project))
+            data = x.request('GET','/repos/%s/%s/labels' % (self._projectsource, self._project))
             if 'message' in data:
                 self._error(data)
                 return False
@@ -82,7 +96,7 @@ class Github(object):
         label['name'] = lab_name
         label['color'] = lab_color
         print "Creating label : "+str(label)
-        data = x.request('POST','/repos/%s/%s/labels' % (self._username, self._project), label)
+        data = x.request('POST','/repos/%s/%s/labels' % (self._projectsource, self._project), label)
         if 'name' in data and data['name'] == lab_name:
             self.labels.append(lab_name)
             return True
@@ -106,7 +120,7 @@ class Github(object):
         if iss_labels != None and type(iss_labels) == type([]):
             issue['labels'] = iss_labels
         
-        data = x.request('POST','/repos/%s/%s/issues' % (self._username, self._project), issue)
+        data = x.request('POST','/repos/%s/%s/issues' % (self._projectsource, self._project), issue)
         if 'title' in data and data['title'] == iss_title:
             return data['number']
         
@@ -117,7 +131,7 @@ class Github(object):
         x = GithubRequest(self._username, self._password)
         issue = {}
         issue['state'] = 'closed'
-        data = x.request('PATCH','/repos/%s/%s/issues/%d' % (self._username, self._project, iss_id), issue)
+        data = x.request('PATCH','/repos/%s/%s/issues/%d' % (self._projectsource, self._project, iss_id), issue)
         if 'state' in data and data['state'] == 'closed':
             return True
             
@@ -162,4 +176,3 @@ class GithubRequest(object):
         jsonresponse = response.read()
         textresponse = self._decoder.decode(jsonresponse)
         return textresponse
-    
