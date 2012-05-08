@@ -109,9 +109,9 @@ class Github(object):
         issue = {}
         issue['title'] = iss_title
         if iss_body != None:
-            issue['description'] = iss_body
+            issue['body'] = iss_body
         
-        if iss_assignee != None:
+        if iss_assignee != None and iss_assignee != '':
             issue['assignee'] = iss_assignee
         
         if iss_milestone != None and type(iss_milestone) == type(1):
@@ -136,13 +136,17 @@ class Github(object):
             return True
             
         self._error(data)        
-        return False
+        return False     
+        
+    def get_error(self):
+        return self._last_error_data
     
     def _error(self, data):
+    	self._last_error_data = data
         print "----------------ERROR--------------"
         print data
         print "----------------ERROR--------------"
-      
+
 
 class GithubRequest(object):
     def __init__(self, username, password):

@@ -11,9 +11,8 @@ import ConfigParser
 
 class Tragit:
 
-    def __init__(self, trac_csv, project): 
+    def __init__(self, trac_csv): 
         self._traccsv = trac_csv
-        self._project = project
         self._config = ConfigParser.ConfigParser()
         self._config.read('tragit.conf')
         self._config_sanity_check()
@@ -21,9 +20,10 @@ class Tragit:
         self._password = self._config.get('github','password')
         self._defaultcolor = self._config.get('github','defaultcolor').lstrip('#')
         self._project = self._config.get('github','project')
-        self._defaultassignee = self._config.get('github','defaultassignee')
+        self._default_assignee = self._config.get('github','defaultassignee')
         self._projectinorg = self._config.get('github','projectinorg')
         self._orgname = self._config.get('github','orgname')
+        self._invalid_assignees = []
         if self._projectinorg == 'true':
             self._projectsource = self._orgname
         else:
@@ -34,7 +34,8 @@ class Tragit:
             self._conf_map[conf_item] = self._config.get('issue',conf_item)
             
         self._github = github.Github(self._username, self._password, self._project, self._projectsource)
-        
+        self._collaborators = self._github.get_collaborators()        
+        print "Project %s collaborators list %s" % (self._project, str(self._collaborators))
         print "Github API successfully loaded!"  
             
     def _config_sanity_check(self):
@@ -56,11 +57,11 @@ class Tragit:
         
         if 'defaultassignee' not in githubitems.keys() or githubitems['defaultassignee'] == "":
             print 'No default assignee specified.'
-            print 'Tragit will assign tickets to you in Github, if the actual owner could not be found. Is it ok ?'
+            print 'Tragit will leave tickets unassigned in Github if the actual owner could not be found. Is it ok ?'
             go = sys.stdin.readline().strip().lower()
             if go[0:1] != 'y':
                 sys.exit('Give some username as the default assignee and try again.')
-            self._config.set('github','defaultassignee',self._config.get('github','username'))
+            self._config.set('github','defaultassignee','')
         
         projectinorg = githubitems['projectinorg'].lower()
         if projectinorg not in ['true','false']:
@@ -177,11 +178,24 @@ class Tragit:
     def _process_ticket(self, ticket):
         columns = ticket.keys()
         issue_labels = self._process_labels(ticket)
-        milestone_id = self._process_milestone(ticket)
+        milestone_id = self._process_milestone(ticket)       
+        assignee = ticket[self._conf_map['assignee']]
+        if assignee not in self._collaborators or assignee in self._invalid_assignees:
+            ticket[self._conf_map['assignee']] = self._default_assignee
+        
         issue_id = self._github.create_issue(ticket[self._conf_map['title']], ticket[self._conf_map['body']], 
                                              ticket[self._conf_map['assignee']], milestone_id, issue_labels)
         if issue_id == False:
-            sys.exit(ticket[self._conf_map['title']]+" issue cannot be created because something went wrong with Github API.")
+            error = self._github.get_error()['errors'][0]           
+            if error['field'] == 'assignee' and error['code'] == 'invalid':
+                assert(ticket[self._conf_map['assignee']] == error['value'])
+                invalid_assignee = error['value']
+                self._invalid_assignees.append(invalid_assignee)
+                ticket[self._conf_map['assignee']] = self._default_assignee
+                self._process_ticket(ticket)
+                return
+            else:
+                sys.exit(ticket[self._conf_map['title']]+" issue cannot be created because something went wrong with Github API.")
                 
         if ticket[self._conf_map['state']] == 'closed':
             resp = self._github.close_issue(issue_id)
