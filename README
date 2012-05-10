@@ -1,3 +1,6 @@
+Usage : 1) Update tragit.conf with your repo details
+        2) >python tragit.py
+
 Tragit is a python tool to move tickets from TRAC to Github Issues conveniently.
 It uses the Github API v3 and hence supports extra features which are not available in v2 API.
 For e.g., an assigned ticket in TRAC is reassigned to the corresponding Github username automatically. This wasn't possible in API v2.
